@@ -87,7 +87,7 @@ ARCHITECTURE_COMPONENTS = [
         "what": "Calculates Term Frequency (TF) and Inverse Document Frequency (IDF) weights for vocabulary terms in documents and queries.",
         "why": "Rewards terms frequent in specific documents while heavily penalizing terms ubiquitous across the whole corpus.",
         "how": "TF(t, d) = count / length; IDF(t) = ln((N+1)/(DF+1)) + 1; Vector weight = TF * IDF.",
-        "python_library": "NumPy, Scikit-learn (TfidfVectorizer principles), Math"
+        "python_library": "Python math module, Custom TF-IDF implementation"
     },
     {
         "id": "similarity_calculation",
@@ -97,7 +97,7 @@ ARCHITECTURE_COMPONENTS = [
         "what": "Computes normalized vector dot product between the query vector and candidate document vectors.",
         "why": "Measures angle between vectors in high-dimensional semantic space, completely invariant to document length differences.",
         "how": "Cosine Sim = (Q · D) / (||Q|| × ||D||). Produces score bounded between 0.0 (unrelated) and 1.0 (exact match).",
-        "python_library": "NumPy (dot product, linalg.norm), Scikit-learn (pairwise cosine_similarity)"
+        "python_library": "Python math module (dot product, vector norm), Custom cosine similarity"
     },
     {
         "id": "ranking_algorithm",

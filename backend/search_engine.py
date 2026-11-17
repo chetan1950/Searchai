@@ -1,6 +1,7 @@
 """
 SearchLab AI - Search Engine & Vector Space Information Retrieval Model
 Implements TF-IDF vectorization, Cosine Similarity ranking, and detailed IR calculation traces.
+Uses pure Python math (no numpy/scikit-learn) for lightweight serverless deployment.
 """
 
 import math
@@ -8,9 +9,19 @@ import time
 import re
 from typing import List, Dict, Any, Optional, Tuple
 from collections import Counter
-import numpy as np
 from preprocessing import clean_and_tokenize, run_pipeline
 from indexing import global_index
+
+
+def _dot_product(a: List[float], b: List[float]) -> float:
+    """Compute dot product of two equal-length vectors."""
+    return sum(x * y for x, y in zip(a, b))
+
+
+def _vector_norm(v: List[float]) -> float:
+    """Compute Euclidean (L2) norm of a vector."""
+    return math.sqrt(sum(x * x for x in v))
+
 
 class SearchEngine:
     def __init__(self):
@@ -19,8 +30,8 @@ class SearchEngine:
         self.vocabulary: List[str] = []
         self.vocab_index: Dict[str, int] = {}
         self.idf_dict: Dict[str, float] = {}
-        # Document vectors: doc_id -> np.ndarray of shape (len(vocabulary),)
-        self.doc_vectors: Dict[str, np.ndarray] = {}
+        # Document vectors: doc_id -> list of floats (length = len(vocabulary))
+        self.doc_vectors: Dict[str, List[float]] = {}
         self.doc_norms: Dict[str, float] = {}
         self.doc_tf_idf_terms: Dict[str, List[Dict[str, Any]]] = {}
 
@@ -66,7 +77,7 @@ class SearchEngine:
             doc_len = max(1, len(tokens))
             term_counts = Counter(tokens)
             
-            vector = np.zeros(V, dtype=np.float64)
+            vector = [0.0] * V
             top_terms = []
 
             for term, count in term_counts.items():
@@ -89,7 +100,7 @@ class SearchEngine:
             top_terms.sort(key=lambda x: x["tfidf"], reverse=True)
             self.doc_tf_idf_terms[doc_id] = top_terms
 
-            norm = float(np.linalg.norm(vector))
+            norm = _vector_norm(vector)
             self.doc_vectors[doc_id] = vector
             self.doc_norms[doc_id] = norm if norm > 0 else 1.0
 
@@ -130,7 +141,7 @@ class SearchEngine:
 
         # Vectorize query
         V = len(self.vocabulary)
-        query_vector = np.zeros(V, dtype=np.float64)
+        query_vector = [0.0] * V
         query_term_counts = Counter(query_tokens)
         q_len = max(1, len(query_tokens))
 
@@ -150,7 +161,7 @@ class SearchEngine:
                     "tfidf": round(tfidf_val, 4)
                 })
 
-        q_norm = float(np.linalg.norm(query_vector))
+        q_norm = _vector_norm(query_vector)
         if q_norm == 0:
             q_norm = 1.0
 
@@ -169,11 +180,11 @@ class SearchEngine:
                 continue
 
             # Dot product
-            dot_product = float(np.dot(query_vector, d_vec))
+            dot_product_val = _dot_product(query_vector, d_vec)
             d_norm = self.doc_norms.get(doc_id, 1.0)
             
-            if dot_product > 0 and d_norm > 0:
-                cosine_sim = dot_product / (q_norm * d_norm)
+            if dot_product_val > 0 and d_norm > 0:
+                cosine_sim = dot_product_val / (q_norm * d_norm)
             else:
                 cosine_sim = 0.0
 
@@ -194,7 +205,7 @@ class SearchEngine:
                     "word_count": doc["word_count"],
                     "similarity_score": round(cosine_sim, 4),
                     "similarity_percentage": round(cosine_sim * 100, 1),
-                    "dot_product": round(dot_product, 5),
+                    "dot_product": round(dot_product_val, 5),
                     "doc_norm": round(d_norm, 4),
                     "query_norm": round(q_norm, 4),
                     "matched_terms": list(set(matched_terms)),
@@ -262,14 +273,6 @@ class SearchEngine:
     def get_live_search_trace(self, query: str) -> Dict[str, Any]:
         """
         Calculates and returns the step-by-step mathematical demonstration trace for a live search.
-        Steps:
-        1. Receiving Query
-        2. NLP Preprocessing
-        3. Inverted Index Lookup
-        4. TF-IDF Query Vector Generation
-        5. Cosine Similarity Calculation
-        6. Document Ranking
-        7. Results Display
         """
         # Step 1: Receiving query
         step1 = {
@@ -327,7 +330,7 @@ class SearchEngine:
 
         # Step 4: Generating TF-IDF query vector
         V = len(self.vocabulary)
-        q_vec = np.zeros(V, dtype=np.float64)
+        q_vec = [0.0] * V
         q_counts = Counter(clean_tokens)
         q_term_breakdown = []
         for t, cnt in q_counts.items():
@@ -344,7 +347,7 @@ class SearchEngine:
                     "tfidf": round(tfidf, 4)
                 })
 
-        q_norm = float(np.linalg.norm(q_vec))
+        q_norm = _vector_norm(q_vec)
         if q_norm == 0:
             q_norm = 1.0
 
@@ -368,7 +371,7 @@ class SearchEngine:
             if d_vec is None:
                 continue
 
-            dot_prod = float(np.dot(q_vec, d_vec))
+            dot_prod = _dot_product(q_vec, d_vec)
             d_norm = self.doc_norms.get(doc_id, 1.0)
             sim = dot_prod / (q_norm * d_norm) if (dot_prod > 0 and d_norm > 0) else 0.0
 
