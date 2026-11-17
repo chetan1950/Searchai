@@ -10,6 +10,7 @@ class SearchRequest(BaseModel):
     category_filter: Optional[str] = Field("all", description="Category filter name or 'all'")
     min_score: Optional[float] = Field(0.0, description="Minimum cosine similarity score threshold (0.0 - 1.0)")
     sort_by: Optional[str] = Field("relevance", description="Sort order: 'relevance', 'title', or 'words'")
+    top_k: Optional[int] = Field(None, ge=1, le=100, description="Optional maximum number of results")
 
 class PreprocessRequest(BaseModel):
     text: str = Field(..., description="Text input to process through the 6-stage NLP pipeline")
