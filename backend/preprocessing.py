@@ -3,43 +3,30 @@ SearchLab AI - NLP Text Preprocessing Pipeline
 Implements the 6-stage NLP preprocessing pipeline using NLTK and morphological normalization.
 """
 
-import string
 import re
 import io
-import os
+import logging
 from typing import List, Dict, Any, Tuple
-import nltk
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 
-# Configure NLTK data directory for serverless environments (writable /tmp)
-nltk_download_dir = None
-if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
-    nltk_download_dir = "/tmp/nltk_data"
-    os.makedirs(nltk_download_dir, exist_ok=True)
-    if nltk_download_dir not in nltk.data.path:
-        nltk.data.path.insert(0, nltk_download_dir)
-
-# Ensure NLTK data resources are loaded
 try:
     STOPWORDS = set(stopwords.words('english'))
 except LookupError:
-    if nltk_download_dir:
-        nltk.download('stopwords', download_dir=nltk_download_dir, quiet=True)
-    else:
-        nltk.download('stopwords', quiet=True)
-    STOPWORDS = set(stopwords.words('english'))
-
-try:
-    nltk.data.find('tokenizers/punkt')
-except LookupError:
-    if nltk_download_dir:
-        nltk.download('punkt', download_dir=nltk_download_dir, quiet=True)
-        nltk.download('punkt_tab', download_dir=nltk_download_dir, quiet=True)
-    else:
-        nltk.download('punkt', quiet=True)
-        nltk.download('punkt_tab', quiet=True)
+    logging.getLogger(__name__).warning(
+        "NLTK stopwords corpus is unavailable; using the built-in English fallback."
+    )
+    STOPWORDS = set(
+        "a about above after again against all am an and any are as at be because been "
+        "before being below between both but by can could did do does doing down during "
+        "each few for from further had has have having he her here hers herself him himself "
+        "his how i if in into is it its itself just me more most my myself no nor not of off "
+        "on once only or other our ours ourselves out over own same she should so some such "
+        "than that the their theirs them themselves then there these they this those through "
+        "to too under until up very was we were what when where which while who whom why will "
+        "with would you your yours yourself yourselves".split()
+    )
 
 stemmer = PorterStemmer()
 
@@ -100,7 +87,7 @@ def run_pipeline(text: str) -> Dict[str, Any]:
     # Stage 3: Tokenization
     try:
         stage3_tokens = word_tokenize(stage2_text)
-    except Exception:
+    except LookupError:
         # Fallback regex tokenizer
         stage3_tokens = re.findall(r'\b\w+\b|[^\w\s]', stage2_text)
     stage3_token_count = len(stage3_tokens)
@@ -250,7 +237,7 @@ def clean_and_tokenize(text: str) -> List[str]:
     text_lower = text.lower()
     try:
         tokens = word_tokenize(text_lower)
-    except Exception:
+    except LookupError:
         tokens = re.findall(r'\b\w+\b', text_lower)
     
     clean_tokens = []
